@@ -66,29 +66,14 @@ pipeline {
                           -Dsonar.projectName=SimpleExpressExample \
                           -Dsonar.projectVersion=0.0.${BUILD_NUMBER} \
                           -Dsonar.host.url=http://localhost:9000 \
-                          //-Dsonar.sources=./${PROJECT_ROOT}/app.js,./${PROJECT_ROOT}/config/db.config.js,./${PROJECT_ROOT}/routes/developers.js \
                           -Dsonar.login=admin \
-                          -Dsonar.password=13L09l2017 \
-                          -Dsonar.tests=./${PROJECT_ROOT}/test \
-                          -Dsonar.javascript.lcov.reportPaths=./${PROJECT_ROOT}/coverage/lcov.info"
+                          -Dsonar.password=13L09l2017 \              
             }
             timeout(time: 3, unit: 'MINUTES') {
               // In case of SonarQube failure or direct timeout exceed, stop Pipeline
               waitForQualityGate abortPipeline: qualityGateValidation(waitForQualityGate())
             }
           }
-      }
-      stage('Build docker-image') {
-        steps {
-          sh "cd ./${PROJECT_ROOT};docker build -t ${REGISTRY}:${BUILD_NUMBER} . "
-        }
-      }
-      stage('Deploy docker-image') {
-        steps {
-          // If the Dockerhub authentication stopped, do it again
-          sh 'docker login'
-          sh "docker push ${REGISTRY}:${BUILD_NUMBER}"
-        }
       }
   }
 }
