@@ -1,79 +1,70 @@
-// Function to validate that the message returned from SonarQube is ok
-def qualityGateValidation(qg) {
-  if (qg.status != 'OK') {
-    // emailext body: "WARNING SANTI: Code coverage is lower than 80% in Pipeline ${BUILD_NUMBER}", subject: 'Error Sonar Scan,   Quality Gate', to: "${EMAIL_ADDRESS}"
-    return true
-  }
-  // emailext body: "CONGRATS SANTI: Code coverage is higher than 80%  in Pipeline ${BUILD_NUMBER} - SUCCESS", subject: 'Info - Correct Pipeline', to: "${EMAIL_ADDRESS}"
-  return false
-}
 pipeline {
-  agent any
+    agent any
 
-  tools {
-      nodejs 'nodejs'
-  }
+    environment {
+        // Define las variables de entorno necesarias, por ejemplo, rutas y configuraciones
+    }
 
-  environment {
-      // General Variables for Pipeline
-      PROJECT_ROOT = 'c8_backend-dev/src'
-      EMAIL_ADDRESS = 'chany.vargas@upeu.edu.pe'
-      REGISTRY = 'fabrizionicolay-APRO_TEST2023-c8_backend-dev'
-  }
-
-  stages {
-      stage('Hello') {
-        steps {
-          // First stage is a sample hello-world step to verify correct Jenkins Pipeline
-          echo 'Hello World, I am Happy'
-          echo 'This is my amazing Pipeline'
+    stages {
+        stage('Checkout') {
+            steps {
+                // Clonar el repositorio de código fuente desde tu sistema de control de versiones
+                 script {
+            def gitCredentials = credentials('github') // Debes definir tus propias credenciales
+            checkout([$class: 'GitSCM',
+                branches: [[name: '*/main']], // Puedes especificar la rama que desees
+                userRemoteConfigs: [[
+                    url: 'https://github.com/fabrizionicolay/APRO_TEST2023.git', // Reemplaza con la URL de tu repositorio
+                    credentialsId: gitCredentials
+                ]]
+            ])
         }
-      }
-      stage('Checkout') {
-        steps {
-        // Get Github repo using Github credentials (previously added to Jenkins credentials)
-        checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/fabrizionicolay/APRO_TEST2023.git']]])        }
-      }
-      stage('Install dependencies') {
-        steps {
-          sh 'npm --version'
-          sh 'npm install'
-        }
-      }
-      stage('Unit tests') {
-        steps {
-          // Run unit tests
-          sh 'npm run test'
-        }
-      }
-      stage('Generate coverage report') {
-        steps {
-          // Run code-coverage reports
-          sh 'npm run coverage'
-        }
-      }
-      stage('scan') {
-          environment {
-            // Previously defined in the Jenkins "Global Tool Configuration"
-            scannerHome = tool 'sonar-scanner'
-          }
-          steps {
-            // "sonarqube" is the server configured in "Configure System"
-            withSonarQubeEnv('sonarqube') {
-              // Execute the SonarQube scanner with desired flags
-              sh "${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=SimpleExpressExample:Test \
-                          -Dsonar.projectName=SimpleExpressExample \
-                          -Dsonar.projectVersion=0.0.${BUILD_NUMBER} \
-                          -Dsonar.host.url=http://localhost:9000 \
-                          -Dsonar.login=admin \
-                          -Dsonar.password=13L09l2017 \              
+                checkout scm
             }
-            timeout(time: 3, unit: 'MINUTES') {
-              // In case of SonarQube failure or direct timeout exceed, stop Pipeline
-              waitForQualityGate abortPipeline: qualityGateValidation(waitForQualityGate())
+        }
+
+        stage('Build') {
+            steps {
+                // Instalar dependencias de Node.js (por ejemplo, npm o yarn)
+                sh 'npm install'
             }
-          }
-      }
-  }
+        }
+
+        stage('Code Quality Analysis') {
+            steps {
+                // Ejecutar el análisis de código con SonarQube
+                script {
+                    def scannerHome = tool name: 'SonarQube Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                    withSonarQubeEnv('sonarqube') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                // Ejecutar pruebas unitarias (por ejemplo, usando frameworks como Jest, Mocha, Jasmine, etc.)
+                sh 'npm test'
+            }
+        }
+
+        stage('Deployment') {
+            steps {
+                // Aquí puedes agregar pasos para implementar tu aplicación en el entorno de destino
+            }
+        }
+    }
+
+    post {
+        success {
+            // Acciones a realizar si el pipeline se ejecuta con éxito
+            echo 'El pipeline se ejecutó con éxito'
+        }
+
+        failure {
+            // Acciones a realizar si el pipeline falla
+            echo 'El pipeline falló. Se deben tomar medidas adecuadas.'
+        }
+    }
 }
