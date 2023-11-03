@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/fabrizionicolay/APRO_TEST2023.git']]])
             }
         }
 
@@ -27,6 +27,14 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh 'npm test'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('c8_backend-dev') {
+                    sh 'sonar-scanner' // Asegúrate de que sonar-scanner esté en tu PATH
+                }
             }
         }
     }
