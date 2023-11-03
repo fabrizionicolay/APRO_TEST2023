@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/fabrizionicolay/APRO_TEST2023.git']]])
+                checkout scm
             }
         }
 
@@ -27,15 +27,6 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh 'npm test'
-            }
-        }
-
-        stage('Deploy') {
-            when {
-                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
-            steps {
-                // Agrega aquí tus comandos para desplegar en un servidor remoto
             }
         }
     }
