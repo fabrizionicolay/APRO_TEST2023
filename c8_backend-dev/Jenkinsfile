@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    environment {
+        NODEJS_HOME = tool name: 'NodeJS', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/fabrizionicolay/APRO_TEST2023.git']]])
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'npm test'
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                // Agrega aquí tus comandos para desplegar en un servidor remoto
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext to: 'chany.vargas@upeu.edu.pe',
+                subject: 'Build Successful',
+                body: 'El build de Jenkins para tu proyecto de JavaScript se completó con éxito.'
+            slackSend(color: '#36a64f', message: "Build exitoso para el proyecto JavaScript.")
+        }
+
+        failure {
+            emailext to: 'chany.vargas@upeu.edu.pe',
+                subject: 'Build Failed',
+                body: 'El build de Jenkins para tu proyecto de JavaScript falló. Por favor, revisa los registros para más detalles.'
+            slackSend(color: '#ff0000', message: "¡El build ha fallado para el proyecto JavaScript!")
+        }
+    }
+}
